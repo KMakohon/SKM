@@ -40,9 +40,8 @@ int main()
   memset(&(soc.sin_zero),0,8);
   char nazwa [20];
 
-  int signal;
-  int sterujaca;
-  char odp;
+  char signal;
+
 
 //tworzenie plików
   if (stat("./serv", &st) == -1) 
@@ -65,80 +64,28 @@ int main()
     printf("bind nie powiodl sie\n");
     return 1;
   }
-
   listen(sdServerSocket, 10);
-    int abcd;
+
   while ((sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &sin_size)) > 0) 
   {
-    memset(&signal, 0, sizeof(int));
     printf("Polaczenie z %s:%d\n",
     inet_ntoa(incoming.sin_addr),
     ntohs(incoming.sin_port));
 
-if (recv(sdConnection, &signal, sizeof(signal),0) == 4)
+if (recv(sdConnection, &signal, sizeof(signal),0) != sizeof(signal))
 {
-
-print("%d \n", signal)
-/*
-switch(signal)
-  {
-    case 1: 
-    printf("1\n");
-    //przejrzyj pliki na dyku
-    //wysyłamy ok
-    odp = 'k';
-    if (send(sdConnection, &odp, sizeof(odp), 0) != sizeof(odp)) 
-    { 
-      printf("pierwszy send się nie powiódł\n");
-    }
-    break;
-
-    case 2: printf("2 \n");
-    //wysyłamy ok
-    odp = 'k';
-    if (send(sdConnection, &odp, sizeof(odp), 0) != sizeof(odp)) 
-    {
-        printf("pierwszy send nie powiodl sie\n");
-    }
-    break;
-    case 3: 
-    //ściagnij plik
-    printf("3 \n");
-    //wysyłamy ok
-    odp = 'k';
-    if (send(sdConnection, &odp, sizeof(odp), 0) != sizeof(odp)) 
-    {
-        printf("pierwszy send nie powiodl sie\n"); break;
-    }
-    //wciągnięcie nazwy pliku
-    if (recv(sdConnection, &nazwa, sizeof(nazwa),0) != sizeof(nazwa))
-    {
-        printf("brak nazwy \n");
-    }
-    break;
-
-    case 4:
-    printf("dost 4\n");
+    printf("pierwszy recv nie powiodl sie. \n");
     close(sdConnection);
-    break;
-
-    default:  
-    close(sdConnection);
-    break;
+    continue;
 }
+printf("Odebrano %c \n", signal);
 }
-
-//  {
-//    printf("pierwszy recv nie powiodl sie. \n");
-//    close(sdConnection);
-//    continue;
-//  }
-
-//  sterujaca = htonl(signal);
-
-*/
+char potw[5] = "gdsad";
+if (send(sdConnection, &potw, sizeof(potw), 0) != sizeof(potw))
+{
+printf("send sie nie powiodl \n");
 }
     close(sdConnection);
-}
+
 return 0;
 }
