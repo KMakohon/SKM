@@ -38,7 +38,7 @@ int main()
 
 
   soc.sin_family = AF_INET;
-  soc.sin_port = htons(5008);
+  soc.sin_port = htons(5007);
   soc.sin_addr = *(struct in_addr*) 
   heLocalHost->h_addr;
   memset(&(soc.sin_zero),0,8);
@@ -88,7 +88,11 @@ if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
 switch(signal){
 //wysłanie pliku na serwer
     case 'a':
+//wyślij rozmiar
 
+//wyślij nazwę
+
+//dopisuj plik
         if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
         {
             printf("send sie nie powiodl \n");
@@ -110,15 +114,15 @@ switch(signal){
 // odczyt plików z serwera
     case 'c': 
 
-    if (recv(sdConnection, &nazwa, sizeof(nazwa), 0) == sizeof(nazwa))
-    {
+    if (recv(sdConnection, &nazwa, sizeof(nazwa), 0) <= sizeof(nazwa))
+    {   
         dir = opendir("./serv");
         while ((de = readdir(dir)) != NULL) 
         {   
             char *name;
             name = de->d_name;
             int fool = strcmp(name,nazwa);
-            if (fool = 1)
+            if (fool == 0)
             {
                 sprintf(nazwa, "./serv/%s", name);
                 pic = fopen(nazwa, "r");
@@ -139,14 +143,8 @@ else
         close(sdConnection);
         continue;
 }
+break;
 
-
-if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
-        {
-            printf("send sie nie powiodl \n");
-            close(sdConnection);
-        }
-        break;
     default: 
 printf("test \n");
         close(sdConnection);
