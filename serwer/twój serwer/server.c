@@ -8,17 +8,20 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <time.h>
+
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
-#include "kompresja.h"
-
+#include <dirent.h> 
 
 char myhostname[1024];
+
 struct sockaddr_in soc;
-FILE *flog;
 
 int main() 
 {
+  int size;
   int sdServerSocket, sdConnection, retval;
   socklen_t sin_size;
   struct sockaddr_in incoming;
@@ -31,17 +34,21 @@ int main()
   heLocalHost = gethostbyname(myhostname);
 
   struct stat st = {0};
+  struct dirent *de;
+
 
   soc.sin_family = AF_INET;
   soc.sin_port = htons(5008);
   soc.sin_addr = *(struct in_addr*) 
   heLocalHost->h_addr;
   memset(&(soc.sin_zero),0,8);
-  char nazwa [20];
+  char nazwa [15];
 
   char signal;
 
-
+  char buffor [1024];
+FILE *pic;
+DIR *dir;
 //tworzenie plików
   if (stat("./serv", &st) == -1) 
   {
@@ -82,40 +89,71 @@ switch(signal){
 //wysłanie pliku na serwer
     case 'a':
 
-if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
-{
-    printf("send sie nie powiodl \n");
-    close(sdConnection);
-}
-
- break;
+        if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+        {
+            printf("send sie nie powiodl \n");
+            close(sdConnection);
+        }
+        break;
 // wylistowanie plików
     case 'b': 
-
-if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
-{
-    printf("send sie nie powiodl \n");
-    close(sdConnection);
+        pic = fopen("./serv/pom/list", "r");
+        size = sizeof(pic);
+        while(size > 0)
+        {
+            int przeczytano = fread(&buffor, 1, 1024, pic);
+            send(sdConnection, &buffor, przeczytano, 0);
+            size = size - przeczytano;
 }
+        break;
 
-break;
 // odczyt plików z serwera
     case 'c': 
-if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+
+    if (recv(sdConnection, &nazwa, sizeof(nazwa), 0) == sizeof(nazwa))
+    {
+        dir = opendir("./serv");
+        while ((de = readdir(dir)) != NULL) 
+        {   
+            char *name;
+            name = de->d_name;
+            int fool = strcmp(name,nazwa);
+            if (fool = 1)
+            {
+                sprintf(nazwa, "./serv/%s", name);
+                pic = fopen(nazwa, "r");
+                int przeczytano = fread(buffor, 1, 1024, pic);
+                int wyslano = send(sdConnection, buffor, przeczytano, 0) != sizeof(pic);
+                size = size - przeczytano;
+                if (przeczytano != wyslano)
+                {
+                    break;
+                }
+
+            }
+        }
+    }
+else 
 {
-    printf("send sie nie powiodl \n");
-    close(sdConnection);
+        printf("drugi recv nie powiodl sie. \n");
+        close(sdConnection);
+        continue;
 }
 
-break;
-    default: 
-close(sdConnection);
 
-break;
+if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+        {
+            printf("send sie nie powiodl \n");
+            close(sdConnection);
+        }
+        break;
+    default: 
+printf("test \n");
+        close(sdConnection);
+        break;
 }
 printf("Odebrano %c \n", signal);
 
-close(sdConnection);
 }
 
 return 0;
