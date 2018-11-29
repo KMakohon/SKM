@@ -15,12 +15,19 @@
 
 #include <dirent.h> 
 
+#include "listuj.h"
+
 char myhostname[1024];
 
 struct sockaddr_in soc;
 
 int main() 
 {
+
+int i;
+char file[26];
+char ip [16];
+
   int size;
   int sdServerSocket, sdConnection, retval;
   socklen_t sin_size;
@@ -38,25 +45,33 @@ int main()
 
 
   soc.sin_family = AF_INET;
-  soc.sin_port = htons(5007);
+  soc.sin_port = htons(5006);
   soc.sin_addr = *(struct in_addr*) 
   heLocalHost->h_addr;
   memset(&(soc.sin_zero),0,8);
   char nazwa [15];
 
+  char name [10];
+
   char signal;
 
   char buffor [1024];
+
+  long long int rozmiar = 0;
+
+
 FILE *pic;
 DIR *dir;
+DIR *di;
+FILE *f;
 //tworzenie plików
   if (stat("./serv", &st) == -1) 
   {
     mkdir("./serv", 0777);
-  }
-  if (stat("./serv/pom", &st) == -1) 
-  {
-    mkdir("./serv/pom", 0777);
+    if (stat("./serv/pom", &st) == -1) 
+    {
+        mkdir("./serv/pom", 0777);
+    }
   }
 //tworzednie plików
 
@@ -78,27 +93,84 @@ DIR *dir;
     inet_ntoa(incoming.sin_addr),
     ntohs(incoming.sin_port));
 
-if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
-{
-    printf("pierwszy recv nie powiodl sie. \n");
-    close(sdConnection);
-    continue;
-}
-
-switch(signal){
+    if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+    {
+        printf("pierwszy recv nie powiodl sie. \n");
+        close(sdConnection);
+        continue;
+    }
+    memset(nazwa, 0 , sizeof(nazwa));
+    memset(name, 0, sizeof(name));
+    memset(buffor, 0, sizeof(buffor));
+    switch(signal){
 //wysłanie pliku na serwer
     case 'a':
 //wyślij rozmiar
+    if (recv(sdConnection, &rozmiar, sizeof(rozmiar), 0) <= sizeof(rozmiar))
+    {
+         printf("recv 2.1 sie nie powiodl %lld \n", rozmiar);
+        close(sdConnection);
+    }
 
 //wyślij nazwę
-
-//dopisuj plik
-        if (send(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+    if (recv(sdConnection, &name, sizeof(name), 0) != sizeof(name))
+    {
+         printf("recv 2.2 sie nie powiodl \n");
+        close(sdConnection);
+    }
+    else
+    {
+        sprintf(nazwa, "./serv/%s", name);
+            pic = fopen(nazwa, "w");
+        if (pic == NULL)
         {
-            printf("send sie nie powiodl \n");
-            close(sdConnection);
+            pic = fopen(nazwa, "a+");
         }
-        break;
+    }
+//wyślij plik
+    while(rozmiar > 0)
+    {
+         if (recv(sdConnection, &buffor, sizeof(buffor), 0) != sizeof(buffor))
+         {
+             printf("recv 2.3 sie nie powiodl \n");
+             break;
+         }
+         else
+        {
+            fprintf(pic, "%s", buffor);
+            rozmiar = rozmiar - sizeof(buffor);
+
+        }
+    }
+//do listy
+di = opendir("./serv/pom");
+ f = fopen("./serv/pom/list", "w");
+while ((de = readdir(dir)) != NULL) 
+{
+    char *name;
+    name = de->d_name;
+    size_t len = strlen(name);
+        if((strcmp( name + len - 4,".txt") == 0))
+
+        {
+            sprintf(file, "./serv/pom/%s", name);
+            FILE *g = fopen( file, "r");
+            fgets( ip, 16, g);
+            fclose(g);
+            fprintf(f, "%s %s\n", name, ip);
+            printf("%s %s\n", name, ip);
+
+        }
+}
+    fclose(f);
+	closedir(di);	
+
+
+
+
+
+        close(sdConnection);
+    break;
 // wylistowanie plików
     case 'b': 
         pic = fopen("./serv/pom/list", "r");
@@ -112,10 +184,10 @@ switch(signal){
         break;
 
 // odczyt plików z serwera
-    case 'c': 
 
-    if (recv(sdConnection, &nazwa, sizeof(nazwa), 0) <= sizeof(nazwa))
-    {   
+    case 'c': 
+    if (recv(sdConnection, &nazwa, sizeof(nazwa) , 0) <= sizeof(nazwa))
+    {           
         dir = opendir("./serv");
         while ((de = readdir(dir)) != NULL) 
         {   
@@ -137,21 +209,22 @@ switch(signal){
             }
         }
     }
-else 
-{
+    else 
+    {
         printf("drugi recv nie powiodl sie. \n");
         close(sdConnection);
         continue;
-}
-break;
+    }
+    close(sdConnection);
+    break;
 
     default: 
-printf("test \n");
         close(sdConnection);
         break;
 }
 printf("Odebrano %c \n", signal);
 
+close(sdConnection);
 }
 
 return 0;
