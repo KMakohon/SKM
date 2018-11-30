@@ -45,25 +45,25 @@ char ip [16];
 
 
   soc.sin_family = AF_INET;
-  soc.sin_port = htons(5006);
+  soc.sin_port = htons(5005);
   soc.sin_addr = *(struct in_addr*) 
   heLocalHost->h_addr;
   memset(&(soc.sin_zero),0,8);
-  char nazwa [15];
-
-  char name [10];
+  char nazwa [20];
+  char ok = 'k';
+  char name [15];
 
   char signal;
 
-  char buffor [1024];
+  char buffor [512];
 
-  long long int rozmiar = 0;
-
+  int rozmiar = 0;
 
 FILE *pic;
 DIR *dir;
 DIR *di;
 FILE *f;
+FILE *g;
 //tworzenie plików
   if (stat("./serv", &st) == -1) 
   {
@@ -105,47 +105,65 @@ FILE *f;
     switch(signal){
 //wysłanie pliku na serwer
     case 'a':
-//wyślij rozmiar
-    if (recv(sdConnection, &rozmiar, sizeof(rozmiar), 0) <= sizeof(rozmiar))
-    {
-         printf("recv 2.1 sie nie powiodl %lld \n", rozmiar);
-        close(sdConnection);
-    }
 
 //wyślij nazwę
-    if (recv(sdConnection, &name, sizeof(name), 0) != sizeof(name))
+    if (recv(sdConnection, &name, sizeof(name), 0) <= 0)
     {
-         printf("recv 2.2 sie nie powiodl \n");
+        printf("recv 2.1 sie nie powiodl %s \n", name);
         close(sdConnection);
     }
     else
     {
+//tworzenie pliku pomocniczego
+        sprintf(nazwa, "./serv/pom/%s", name);
+            pic = fopen(nazwa, "r");
+        if (pic == NULL)
+        {
+            pic = fopen(nazwa, "a+");
+        }
+        fprintf(pic, "%s", inet_ntoa(incoming.sin_addr));
+        fclose(pic);
+//tworzenie po prostu pliku
         sprintf(nazwa, "./serv/%s", name);
             pic = fopen(nazwa, "w");
         if (pic == NULL)
         {
             pic = fopen(nazwa, "a+");
         }
+
+        
+//wysyłamy potwierdzenie
+            send(sdConnection, &ok, sizeof(char), 0);
     }
+
+//wyślij rozmiar
+    if (recv(sdConnection, &rozmiar, sizeof(rozmiar), 0) <= 0)
+    {
+        printf("recv 2.2 sie nie powiodl %d \n", rozmiar);
+        close(sdConnection);
+    }
+
 //wyślij plik
     while(rozmiar > 0)
     {
-         if (recv(sdConnection, &buffor, sizeof(buffor), 0) != sizeof(buffor))
+         if (recv(sdConnection, &buffor, sizeof(buffor), 0) > sizeof(buffor))
          {
              printf("recv 2.3 sie nie powiodl \n");
              break;
          }
          else
         {
+
             fprintf(pic, "%s", buffor);
             rozmiar = rozmiar - sizeof(buffor);
-
         }
     }
+close(sdConnection);
+fclose(pic);
 //do listy
-di = opendir("./serv/pom");
+ di = opendir("./serv/pom");
  f = fopen("./serv/pom/list", "w");
-while ((de = readdir(dir)) != NULL) 
+while ((de = readdir(di)) != NULL) 
 {
     char *name;
     name = de->d_name;
@@ -154,21 +172,16 @@ while ((de = readdir(dir)) != NULL)
 
         {
             sprintf(file, "./serv/pom/%s", name);
-            FILE *g = fopen( file, "r");
+            g = fopen( file, "r");
             fgets( ip, 16, g);
             fclose(g);
             fprintf(f, "%s %s\n", name, ip);
-            printf("%s %s\n", name, ip);
 
         }
 }
     fclose(f);
 	closedir(di);	
-
-
-
-
-
+printf("Done! \n");
         close(sdConnection);
     break;
 // wylistowanie plików
@@ -222,7 +235,6 @@ while ((de = readdir(dir)) != NULL)
         close(sdConnection);
         break;
 }
-printf("Odebrano %c \n", signal);
 
 close(sdConnection);
 }
