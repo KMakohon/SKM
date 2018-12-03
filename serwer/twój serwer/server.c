@@ -28,7 +28,6 @@ int i;
 char file[26];
 char ip [16];
 
-  int size;
   int sdServerSocket, sdConnection, retval;
   socklen_t sin_size;
   struct sockaddr_in incoming;
@@ -43,9 +42,8 @@ char ip [16];
   struct stat st = {0};
   struct dirent *de;
 
-
   soc.sin_family = AF_INET;
-  soc.sin_port = htons(5007);
+  soc.sin_port = htons(5009);
   soc.sin_addr = *(struct in_addr*) 
   heLocalHost->h_addr;
   memset(&(soc.sin_zero),0,8);
@@ -88,6 +86,7 @@ FILE *g;
     printf("bind nie powiodl sie\n");
     return 1;
   }
+
   listen(sdServerSocket, 10);
 
   while ((sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &sin_size)) > 0) 
@@ -96,6 +95,7 @@ FILE *g;
     inet_ntoa(incoming.sin_addr),
     ntohs(incoming.sin_port));
 
+if(fork == 0 ){
     if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
     {
         printf("pierwszy recv nie powiodl sie. \n");
@@ -207,14 +207,24 @@ printf("Done! \n");
 // wylistowanie plików
     case 'b': 
         pic = fopen("./serv/pom/list", "r");
-        size = sizeof(pic);
+                fseek(pic, 0L, SEEK_END);
+                long int size = ftell(pic);
+                fseek(pic, 0L, SEEK_SET);
+ 
         while(size > 0)
         {
             int przeczytano = fread(&buffor, 1, 1024, pic);
-            send(sdConnection, &buffor, przeczytano, 0);
+            int wyslano = send(sdConnection, &buffor, przeczytano, 0);
             size = size - przeczytano;
+            if (przeczytano != wyslano)
+            {
+                printf("error break \n");
+                break;
+            }
             
-}
+        }
+        fclose(pic);
+        close(sdConnection);
         break;
 
 // odczyt plików z serwera
@@ -232,14 +242,26 @@ printf("Done! \n");
             {
                 sprintf(nazwa, "./serv/%s", name);
                 pic = fopen(nazwa, "r");
-                int przeczytano = fread(buffor, 1, 1024, pic);
-                int wyslano = send(sdConnection, buffor, przeczytano, 0) != sizeof(pic);
-                size = size - przeczytano;
-                if (przeczytano != wyslano)
+                fseek(pic, 0L, SEEK_END);
+                long int size = ftell(pic);
+                fseek(pic, 0L, SEEK_SET);
+                while(size>0)
                 {
-                    break;
+                    int przeczytano = fread(buffor, 1, 1024, pic);
+                    printf("przeczytano: %d \nsizeof(pic): %ld \n", przeczytano, size);
+                    int wyslano = send(sdConnection, buffor, przeczytano, 0);
+                    size = size - przeczytano;
+                        printf("przeczytano %d \nwysłaono %d \n", przeczytano, wyslano);
+                    if (przeczytano != wyslano)
+                    {
+                        printf("error break \n");
+                        break;
+                    }
                 }
-
+            fclose(pic);
+            printf("Wysłano plik \n");
+            close(sdConnection);
+            break;
             }
         }
     }
@@ -258,6 +280,7 @@ printf("Done! \n");
 }
 
 close(sdConnection);
+}
 }
 
 return 0;
