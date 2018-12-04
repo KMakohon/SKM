@@ -269,10 +269,8 @@ createfolder();
 while(1)
 {
         dladr = sizeof(struct sockaddr_in);
-        if (sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &dladr) < 0)
-        {
-            printf("Accept error \n");
-        }
+        sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &dladr);
+
             printf("Polaczenie z %s:%d\n",
             inet_ntoa(incoming.sin_addr),
             ntohs(incoming.sin_port));
@@ -281,7 +279,7 @@ while(1)
                 printf("Jestem dzieckiem \n");
                 char ip [16];
                 sprintf(ip, "%s", inet_ntoa(incoming.sin_addr));
-                if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+                if (recv(sdConnection, &signal, sizeof(char), 0) != sizeof(char))
                 {
                     printf("pierwszy recv nie powiodl sie. \n");
                     close(sdConnection);
@@ -305,10 +303,14 @@ while(1)
                             close(sdConnection);
                             break;
                         }
-                    }  
+                    }
+            exit(0);  
             }
-            else{printf("Główny na stanowisku! \n");}
-            
+            else
+            {
+                printf("Główny na stanowisku! \n");
+                continue;
+            }
 
 }
 return 0;
