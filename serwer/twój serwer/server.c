@@ -15,107 +15,49 @@
 
 #include <dirent.h> 
 
-#include "listuj.h"
 
-char myhostname[1024];
+//funkcje
 
-struct sockaddr_in soc;
 
-int main() 
-{
 
-int i;
-char file[26];
-char ip [16];
+void createfolder(){
+struct stat st = {0};
 
-  int sdServerSocket, sdConnection, retval;
-  socklen_t sin_size;
-  struct sockaddr_in incoming;
-  struct hostent *heLocalHost;
-
-  sin_size = sizeof(struct sockaddr_in);
-
-  sdServerSocket = socket(PF_INET, SOCK_STREAM, 0);
-  gethostname(myhostname, 1023);
-  heLocalHost = gethostbyname(myhostname);
-
-  struct stat st = {0};
-  struct dirent *de;
-
-  soc.sin_family = AF_INET;
-  soc.sin_port = htons(5009);
-  soc.sin_addr = *(struct in_addr*) 
-  heLocalHost->h_addr;
-  memset(&(soc.sin_zero),0,8);
-  char nazwa [20];
-
-  char ok = 'k';
-  char nope = 'n';
-
-  char name [15];
-
-  char signal;
-
-  char buffor [1024];
-
-  char rozmiar [10];
-
-FILE *pic;
-DIR *dir;
-DIR *di;
-FILE *f;
-FILE *g;
-//tworzenie plików
   if (stat("./serv", &st) == -1) 
   {
     mkdir("./serv", 0777);
-    if (stat("./serv/pom", &st) == -1) 
-    {
-        mkdir("./serv/pom", 0777);
-    }
   }
-//tworzednie plików
-
-  printf("slucham na %s : %d\n",
-  inet_ntoa(soc.sin_addr),
-  ntohs(soc.sin_port));
-
-  retval = bind(sdServerSocket, (struct sockaddr*) &soc, sizeof(struct sockaddr));
-  if (retval < 0) 
+  if (stat("./serv/pom", &st) == -1) 
   {
-    printf("bind nie powiodl sie\n");
-    return 1;
+    mkdir("./serv/pom", 0777);
   }
 
-  listen(sdServerSocket, 10);
+}
 
-  while ((sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &sin_size)) > 0) 
-  {
-    printf("Polaczenie z %s:%d\n",
-    inet_ntoa(incoming.sin_addr),
-    ntohs(incoming.sin_port));
+int doA(int sdConnection, char ip[16]){
 
-if(fork == 0 ){
-    if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
-    {
-        printf("pierwszy recv nie powiodl sie. \n");
-        close(sdConnection);
-        continue;
-    }
-    memset(nazwa, 0 , sizeof(nazwa));
-    memset(name, 0, sizeof(name));
-    memset(buffor, 0, sizeof(buffor));
+FILE *pic;
+FILE *f;
+FILE *g;
+DIR *di;
+struct dirent *de;
+char name [15];
+char nazwa [20];
+char buffor[1024];
+char nope = 'n';
+char ok = 'k';
+char ip2 [16];
+char rozmiar[10];
+memset(nazwa, 0 , sizeof(nazwa));
+memset(name, 0, sizeof(name));
+memset(buffor, 0, sizeof(buffor));
 
-    switch(signal){
-//wysłanie pliku na serwer
-    case 'a':
-
-//wyślij nazwę
     if (recv(sdConnection, &name, sizeof(name), 0) <= 0)
     {
         printf("recv 2.1 sie nie powiodl %s \n", name);
         close(sdConnection);
         send(sdConnection, &nope, sizeof(char), 0);
+        return 1;
     }
     else
     {
@@ -129,15 +71,15 @@ printf("%s \n", name);
         }
         else
         {
-            int o = strcmp(fgets(ip, 16, pic), inet_ntoa(incoming.sin_addr));
+            int o = strcmp(fgets(ip2, 16, pic), ip);
             if (o ==1)
             {
-                char d = 'd';
-                send(sdConnection, &d, sizeof(char), 0);
+                send(sdConnection, &nope, sizeof(char), 0);
                 close(sdConnection);
+                return 1;
             }
         }
-        fprintf(pic, "%s", inet_ntoa(incoming.sin_addr));
+        fprintf(pic, "%s", ip2);
         fclose(pic);
 //tworzenie po prostu pliku
         sprintf(nazwa, "./serv/%s", name);
@@ -146,11 +88,10 @@ printf("%s \n", name);
         {
             pic = fopen(nazwa, "a+");
         }
-
         
 //wysyłamy potwierdzenie
             send(sdConnection, &ok, sizeof(char), 0);
-    }
+     }
 //rozmiar
 memset(rozmiar, 0, sizeof(rozmiar));
 recv(sdConnection, &rozmiar, sizeof(rozmiar), 0);
@@ -163,8 +104,9 @@ roz = strtol(rozmiar, &ptr, 10);
     {
          if (recv(sdConnection, &buffor, sizeof(buffor), 0) == 0)
          {
-             printf("recv 2.3 sie nie powiodl \n");
+            printf("recv 2.3 sie nie powiodl \n");
             send(sdConnection, &nope, sizeof(char), 0);
+            return 1;
 
          }
          else
@@ -183,6 +125,7 @@ printf("ok \n");
 //do listy
  di = opendir("./serv/pom");
  f = fopen("./serv/pom/list", "w");
+char file [26];
 while ((de = readdir(di)) != NULL) 
 {
     char *name;
@@ -201,12 +144,18 @@ while ((de = readdir(di)) != NULL)
 }
     fclose(f);
 	closedir(di);	
-printf("Done! \n");
-        close(sdConnection);
-    break;
+    close(sdConnection);
 // wylistowanie plików
-    case 'b': 
-        pic = fopen("./serv/pom/list", "r");
+
+return 0;
+}
+
+
+int doB(int sdConnection)
+{
+FILE *pic;
+char buffor[1024];
+pic = fopen("./serv/pom/list", "r");
                 fseek(pic, 0L, SEEK_END);
                 long int size = ftell(pic);
                 fseek(pic, 0L, SEEK_SET);
@@ -225,11 +174,18 @@ printf("Done! \n");
         }
         fclose(pic);
         close(sdConnection);
-        break;
 
-// odczyt plików z serwera
 
-    case 'c': 
+return 0;
+}
+
+
+int doC(int sdConnection){
+struct dirent *de;
+DIR *dir;
+char nazwa [20];
+char buffor [1024];
+FILE *pic;
     if (recv(sdConnection, &nazwa, sizeof(nazwa) , 0) <= sizeof(nazwa))
     {           
         dir = opendir("./serv");
@@ -248,10 +204,8 @@ printf("Done! \n");
                 while(size>0)
                 {
                     int przeczytano = fread(buffor, 1, 1024, pic);
-                    printf("przeczytano: %d \nsizeof(pic): %ld \n", przeczytano, size);
                     int wyslano = send(sdConnection, buffor, przeczytano, 0);
                     size = size - przeczytano;
-                        printf("przeczytano %d \nwysłaono %d \n", przeczytano, wyslano);
                     if (przeczytano != wyslano)
                     {
                         printf("error break \n");
@@ -259,29 +213,103 @@ printf("Done! \n");
                     }
                 }
             fclose(pic);
-            printf("Wysłano plik \n");
+            printf("Wysłano plik. \n");
             close(sdConnection);
             break;
             }
         }
     }
-    else 
-    {
-        printf("drugi recv nie powiodl sie. \n");
-        close(sdConnection);
-        continue;
-    }
     close(sdConnection);
-    break;
 
-    default: 
-        close(sdConnection);
-        break;
+
+return 0;
 }
 
-close(sdConnection);
-}
-}
 
+char myhostname[1024];
+struct sockaddr_in soc;
+
+
+//program
+int main(){
+
+int sdServerSocket, sdConnection, retval;
+struct sockaddr_in incoming;
+socklen_t dladr = sizeof(struct sockaddr_in);
+struct hostent *heLocalHost;
+
+int sin_size = sizeof(struct sockaddr_in);
+
+gethostname(myhostname, 1023);
+heLocalHost = gethostbyname(myhostname);
+
+
+soc.sin_family = AF_INET;
+soc.sin_port = htons(5008);
+soc.sin_addr = *(struct in_addr*) 
+heLocalHost->h_addr;
+memset(&(soc.sin_zero),0,8);
+
+sdServerSocket = socket(PF_INET, SOCK_STREAM, 0);
+char ip [16];
+char signal;
+createfolder();
+
+  printf("slucham na %s : %d\n",
+  inet_ntoa(soc.sin_addr),
+  ntohs(soc.sin_port));
+
+  retval = bind(sdServerSocket, (struct sockaddr*) &soc, dladr);
+  if (retval < 0) 
+  {
+    printf("bind nie powiodl sie\n");
+    return 1;
+  }
+ listen(sdServerSocket, 10);
+while(1)
+{
+        dladr = sizeof(struct sockaddr_in);
+        if (sdConnection = accept(sdServerSocket, (struct sockaddr*) &incoming, &dladr) < 0)
+        {
+            printf("Accept error \n");
+        }
+            printf("Polaczenie z %s:%d\n",
+            inet_ntoa(incoming.sin_addr),
+            ntohs(incoming.sin_port));
+            if(fork()==0)
+            {
+                printf("Jestem dzieckiem \n");
+                char ip [16];
+                sprintf(ip, "%s", inet_ntoa(incoming.sin_addr));
+                if (recv(sdConnection, &signal, sizeof(signal), 0) != sizeof(signal))
+                {
+                    printf("pierwszy recv nie powiodl sie. \n");
+                    close(sdConnection);
+                    continue;
+                }
+                else
+                    {
+                        switch(signal)
+                        {
+                        //wysłanie pliku na serwer
+                        case 'a':
+                            doA(sdConnection, &ip[16]);
+                            break;
+                        case 'b':
+                            doB(sdConnection);
+                            break;
+                        case 'c':
+                            doC(sdConnection);
+                            break;
+                        default:
+                            close(sdConnection);
+                            break;
+                        }
+                    }  
+            }
+            else{printf("Główny na stanowisku! \n");}
+            
+
+}
 return 0;
 }
