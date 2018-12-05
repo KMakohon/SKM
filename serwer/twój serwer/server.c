@@ -19,7 +19,6 @@
 //funkcje
 
 
-
 void createfolder(){
 struct stat st = {0};
 
@@ -35,6 +34,7 @@ struct stat st = {0};
 }
 
 int doA(int sdConnection, char ip[16]){
+
 
 FILE *pic;
 FILE *f;
@@ -64,7 +64,7 @@ memset(buffor, 0, sizeof(buffor));
 printf("%s \n", name);
 //tworzenie pliku pomocniczego
         sprintf(nazwa, "./serv/pom/%s", name);
-            pic = fopen(nazwa, "r");
+            pic = fopen(nazwa, "r+");
         if (pic == NULL)
         {
             pic = fopen(nazwa, "a+");
@@ -72,14 +72,14 @@ printf("%s \n", name);
         else
         {
             int o = strcmp(fgets(ip2, 16, pic), ip);
-            if (o ==1)
+            if (o !=0)
             {
                 send(sdConnection, &nope, sizeof(char), 0);
                 close(sdConnection);
                 return 1;
             }
         }
-        fprintf(pic, "%s", ip2);
+        fprintf(pic, "%s", ip);
         fclose(pic);
 //tworzenie po prostu pliku
         sprintf(nazwa, "./serv/%s", name);
@@ -88,7 +88,6 @@ printf("%s \n", name);
         {
             pic = fopen(nazwa, "a+");
         }
-        
 //wysyłamy potwierdzenie
             send(sdConnection, &ok, sizeof(char), 0);
      }
@@ -124,7 +123,7 @@ fclose(pic);
 printf("ok \n");
 //do listy
  di = opendir("./serv/pom");
- f = fopen("./serv/pom/list", "w");
+ f = fopen("./serv/pom/list", "w+");
 char file [26];
 while ((de = readdir(di)) != NULL) 
 {
@@ -132,8 +131,7 @@ while ((de = readdir(di)) != NULL)
     name = de->d_name;
     size_t len = strlen(name);
         if((strcmp( name + len - 4,".txt") == 0))
-
-        {
+        {          
             sprintf(file, "./serv/pom/%s", name);
             g = fopen( file, "r");
             fgets( ip, 16, g);
@@ -172,8 +170,9 @@ pic = fopen("./serv/pom/list", "r");
             }
             
         }
-        fclose(pic);
         close(sdConnection);
+        fclose(pic);
+
 
 
 return 0;
@@ -245,7 +244,7 @@ heLocalHost = gethostbyname(myhostname);
 
 
 soc.sin_family = AF_INET;
-soc.sin_port = htons(5008);
+soc.sin_port = htons(5009);
 soc.sin_addr = *(struct in_addr*) 
 heLocalHost->h_addr;
 memset(&(soc.sin_zero),0,8);
@@ -291,7 +290,8 @@ while(1)
                         {
                         //wysłanie pliku na serwer
                         case 'a':
-                            doA(sdConnection, &ip[16]);
+                            
+                            doA(sdConnection, ip);
                             break;
                         case 'b':
                             doB(sdConnection);
