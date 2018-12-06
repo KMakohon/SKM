@@ -101,6 +101,7 @@ roz = strtol(rozmiar, &ptr, 10);
 //wyślij plik
     while(roz > 0)
     {
+    memset(buffor, 0, sizeof(buffor));
          if (recv(sdConnection, &buffor, sizeof(buffor), 0) == 0)
          {
             printf("recv 2.3 sie nie powiodl \n");
@@ -110,17 +111,16 @@ roz = strtol(rozmiar, &ptr, 10);
          }
          else
         {
+            printf("%s", buffor);
             fprintf(pic, "%s", buffor);
-            roz = roz - 1024;
+            roz = roz - sizeof(buffor);
             send(sdConnection, &ok, sizeof(char), 0);
         }
-    memset(buffor, 0, sizeof(buffor));
     }
 roz = 0;
 //!= sizeof(buffor)
 close(sdConnection);
 fclose(pic);
-printf("ok \n");
 //do listy
  di = opendir("./serv/pom");
  f = fopen("./serv/pom/list", "w");
@@ -143,6 +143,7 @@ while ((de = readdir(di)) != NULL)
     fclose(f);
 	closedir(di);	
     close(sdConnection);
+printf("Plik dotarł! \n");
 // wylistowanie plików
 
 return 0;
@@ -170,6 +171,7 @@ pic = fopen("./serv/pom/list", "r");
             }
             
         }
+        printf("Wysłano plik. \n");
         close(sdConnection);
         fclose(pic);
 
@@ -275,7 +277,7 @@ while(1)
             ntohs(incoming.sin_port));
             if(fork()==0)
             {
-                printf("Jestem dzieckiem \n");
+                printf("Pomocnik na stanowisku! \n");
                 char ip [16];
                 sprintf(ip, "%s", inet_ntoa(incoming.sin_addr));
                 if (recv(sdConnection, &signal, sizeof(char), 0) != sizeof(char))
