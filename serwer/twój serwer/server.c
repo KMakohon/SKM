@@ -64,7 +64,7 @@ memset(buffor, 0, sizeof(buffor));
 printf("%s \n", name);
 //tworzenie pliku pomocniczego
         sprintf(nazwa, "./serv/pom/%s", name);
-            pic = fopen(nazwa, "r+");
+            pic = fopen(nazwa, "r");
         if (pic == NULL)
         {
             pic = fopen(nazwa, "a+");
@@ -83,7 +83,7 @@ printf("%s \n", name);
         fclose(pic);
 //tworzenie po prostu pliku
         sprintf(nazwa, "./serv/%s", name);
-            pic = fopen(nazwa, "w+");
+            pic = fopen(nazwa, "w");
         if (pic == NULL)
         {
             pic = fopen(nazwa, "a+");
@@ -123,7 +123,7 @@ fclose(pic);
 printf("ok \n");
 //do listy
  di = opendir("./serv/pom");
- f = fopen("./serv/pom/list", "w+");
+ f = fopen("./serv/pom/list", "w");
 char file [26];
 while ((de = readdir(di)) != NULL) 
 {
